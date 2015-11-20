@@ -10,11 +10,12 @@ Function Send-SlackAlert
         [string]$Message,
         [string]$User="Powershell",
         [string]$IconURL="",
-        [string]$Color="danger"
+        [string]$Color="danger",
+        [bool]$Codeblock=$true
     )
 
     if (($Webhook -eq "") -or ($Message -eq "")) {
-        Write-Host "Usage: Send-Slackalert -Webhook ""<Webhook service ID>"" -Channel ""slack channel name (without #)"" -SourceHost ""<hostname>"" -Source ""<source name>"" -Severity ""<severity text>"" -User ""<user name>"" -IconURL ""<URL to png>"" -Color ""<name or RGB>"" -Message ""<message>"""
+        Write-Host "Usage: Send-Slackalert -Webhook ""<Webhook service ID>"" -Channel ""slack channel name (without #)"" -SourceHost ""<hostname>"" -Source ""<source name>"" -Severity ""<severity text>"" -User ""<user name>"" -IconURL ""<URL to png>"" -Color ""<name or RGB>"" -Codeblock ""<boolean>"" -Message ""<message>"""
         break
     }
 
@@ -24,13 +25,17 @@ Function Send-SlackAlert
     if ($Webhook.StartsWith("/")) {
         $Channel=$Channel.TrimStart(1)
     }
+
+    if ($Codeblock) {
+        $Message = "``````$Message``````"
+    }
   
     $payload = @{channel="#$Channel";username="$User";icon_url="$IconURL";
         attachments=@(
             @{
                 fallback="[$SourceHost][$Severity]";
                 pretext="*Source: $Source*";
-                text="``````$Message``````";
+                text="$Message";
                 color="$Color";
                 mrkdwn_in=@("pretext","text");
                 fields=@(
@@ -68,7 +73,7 @@ Function Send-SlackMessage
         $Channel=$Channel.TrimStart(1)
     }
   
-    $payload = @{channel="#$Channel";username="$User";icon_url="$IconURL";text="$Message"}      
+    $payload = @{channel="#$Channel";username="$User";icon_url="$IconURL";text="$Message";color="good";}      
     $payload =  [System.Text.Encoding]::UTF8.GetBytes($(convertTo-JSON -depth 6 $payload))
  
     Invoke-RestMethod -Uri "https://hooks.slack.com/services/$Webhook" -Method Post -Body ($payload)
